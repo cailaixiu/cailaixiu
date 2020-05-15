@@ -1,0 +1,5 @@
+psutil==5.7.0
+PyAutoGUI==0.9.50
+PySimpleGUI==4.19.0
+qrcode==6.1
+requests==2.23.0
