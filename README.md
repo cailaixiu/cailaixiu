@@ -17,11 +17,10 @@
 ### 客户端安装步骤
 1. 下载help.exe 与 config.ini, 然后放在同一目录下
 2. 修改config.ini中local_server，指向本地服务器
-3. 点击help.exe执行，无需安装。在生产环境下，推荐开机启动
+3. 点击help.exe执行，无需安装。在生产环境下，批量安装的客户端，推荐开机启动
 
-### 服务器端安装步骤
+### 服务器端(Windows)安装步骤
+1. 下载安装 [Mongodb](https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2012plus-4.2.6-signed.msi)
+2. 下载clxserv.exe，直接运行
 
 
-### config.ini
-- [MAIN]
-- local_server=192.168.40.34:8080
