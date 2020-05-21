@@ -20,7 +20,7 @@
 3. 点击help.exe执行，无需安装。在生产环境下，批量安装的客户端，推荐开机启动
 
 ### 服务器端(Windows)安装步骤
-1. 下载安装 [Mongodb](https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2012plus-4.2.6-signed.msi)
+1. 下载并安装 [Mongodb](https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2012plus-4.2.6-signed.msi)
 2. 下载clxserv.exe，直接运行
 
 
