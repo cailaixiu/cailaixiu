@@ -22,5 +22,6 @@
 ### 服务器端(Windows)安装步骤
 1. 下载并安装 [Mongodb](https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2012plus-4.2.6-signed.msi)
 2. 下载clxserv.exe，直接运行
+3. 启动后，推荐谷歌或火狐浏览器打开 http://localhost:8080  管理员用户名：admin 初始密码：admin
 
 
