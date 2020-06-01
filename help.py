@@ -158,23 +158,25 @@ def Launcher():
 
               try:
                 r = requests.post(host+'/api/help', data=payload, timeout=1.5).json()
-                
-                Ticket.create(tid=r['_id'], body=ask, at=r['at'])
-                
-                url = "https://cailaixiu.com/v/"+r['nid']+"/"+r['tid']+"/"+r['key']+"/"+ask
-                qr_img = qrcode.make(url)
-                out = qr_img.resize((160,160))
-                qr_img_bytes = io.BytesIO()
-                out.save(qr_img_bytes, format='PNG')
-                qr_data = codecs.encode(qr_img_bytes.getvalue(), 'base64')
+                if (r['msg'] == '成功'):
+                  Ticket.create(tid=r['_id'], body=ask, at=r['at'])
+                  
+                  url = "https://cailaixiu.com/v/"+r['nid']+"/"+r['tid']+"/"+r['key']+"/"+ask
+                  qr_img = qrcode.make(url)
+                  out = qr_img.resize((160,160))
+                  qr_img_bytes = io.BytesIO()
+                  out.save(qr_img_bytes, format='PNG')
+                  qr_data = codecs.encode(qr_img_bytes.getvalue(), 'base64')
 
-                if  vals2['-TRACK-'] is False:
-                  sg.popup_auto_close('报修成功')
+                  if  vals2['-TRACK-'] is False:
+                    sg.popup_auto_close('报修成功')
+                  else:
+                    layout3 = [[sg.Text('请手机扫码，跟踪报修状态')],
+                      [sg.Image(data=qr_data)],
+                      [sg.Button('关闭',bind_return_key=True,font=('Verdana', 16))]]
+                    sg.Window('报修成功', layout3).read(close=True)
                 else:
-                  layout3 = [[sg.Text('请手机扫码，跟踪报修状态')],
-                    [sg.Image(data=qr_data)],
-                    [sg.Button('关闭',bind_return_key=True,font=('Verdana', 16))]]
-                  sg.Window('报修成功', layout3).read(close=True)
+                  sg.popup('报修失败！原因为'+r['msg'])
 
                 win2.close()
                 win2_active = False
