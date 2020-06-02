@@ -14,6 +14,7 @@ import platform
 import base64
 from peewee import *
 import qrcode
+import math
 
 db = SqliteDatabase('clx.db')
 class Ticket(Model):
@@ -95,93 +96,122 @@ def Launcher():
     if event is None:
       break
     if event == '-HELP-' and not win2_active:
-      win2_active = True
+      try:
+        scope = ''
+        r = requests.get(host+'/scopes', timeout=0.5).json()
+        scopes = r
+        layoutScopes = []
+        for i in range( math.ceil(len(scopes)/4) ):
+          rows = []
+          for j in range(4):
+            idx = i*4 + j
+            if (idx < len(scopes)):
+              s = scopes[idx]
+              rows.append(sg.Radio(s['scope'], "SCP",size=(8,1),auto_size_text=True,enable_events=True,key='scp_'+str(idx)))
 
-      if to_be_confirmed > 0:
-        row = Ticket.get(Ticket.is_confirmed == False, Ticket.is_fixed == True)
-        layout_ask = [[sg.Text(row.body, text_color='white', pad=(5,10))],
-                      [sg.Text('时间：'+row.at, text_color='silver')]]
-        layout_ack = [[sg.Text(row.ack, text_color='white', pad=(5,10))],
-                      [sg.Text('时间：'+row.rat, text_color='silver')]]
-        layout2 = [[sg.Frame('报修问题', layout_ask)],
-                   [sg.Frame('回复内容', layout_ack)],
-                   [sg.Button('确认', bind_return_key=True, font=('Verdana', 16))]]
-        win2 = sg.Window('回复确认', layout2)
-        while True:
-          ev2, vals2 = win2.Read()
-          if ev2 is None or ev2 == '确认':
-            Ticket.update(is_confirmed= True).where(Ticket.tid == row.tid).execute()
-            win2.close()
-            win2_active = False
-            break
+          layoutScopes += [rows]
+          
 
-      else:
-        img = pyautogui.screenshot()
-        img_bytes = io.BytesIO()
-        try:
-          img.save(img_bytes, format='PNG')
-          base64_data = codecs.encode(img_bytes.getvalue(), 'base64')
-          base64_text = codecs.decode(base64_data, 'ascii')
-        except Exception as e:
-          base64_text = ''
-        
-        layout2 = [[sg.Text('问题描述')],
-                   [sg.In(key='-ASK-')],
-                   [sg.Text('联系人姓名', text_color='white')], 
-                   [sg.In(contact, key='-CONTACT-')],
-                   [sg.Text('联系人手机', text_color='white')], 
-                   [sg.In(cell, key='-CELL-')],
-                   [sg.Checkbox('当前页自动截屏', key='-SCRN-', default=True),sg.Checkbox('手机跟踪进度', key='-TRACK-', default=False)],
-                   [sg.Button('提交', bind_return_key=True)]]
+        win2_active = True
 
-        win2 = sg.Window('报修内容', layout2, font=('Verdana', 16))
-        while True:
-          ev2, vals2 = win2.Read()
-          if ev2 is None:
-            win2.close()
-            win2_active = False
-            break
-          if ev2 == '提交':
-            ask = vals2['-ASK-'].strip()
-            if len(ask) == 0:
-              sg.popup('问题不能为空')
-            elif len(ask) > 100:
-              sg.popup('问题不需太长')
-            else:
-              track = 1 if vals2['-TRACK-'] else 0              
-              contact = vals2['-CONTACT-'].strip()
-              cell = vals2['-CELL-'].strip()
-              if  vals2['-SCRN-'] is False:
-                base64_text = ''
+        if to_be_confirmed > 0:
+          row = Ticket.get(Ticket.is_confirmed == False, Ticket.is_fixed == True)
+          layout_ask = [[sg.Text(row.body, text_color='white', pad=(5,10))],
+                        [sg.Text('时间：'+row.at, text_color='silver')]]
+          layout_ack = [[sg.Text(row.ack, text_color='white', pad=(5,10))],
+                        [sg.Text('时间：'+row.rat, text_color='silver')]]
+          layout2 = [[sg.Frame('报修问题', layout_ask)],
+                     [sg.Frame('回复内容', layout_ack)],
+                     [sg.Button('确认', bind_return_key=True, font=('Verdana', 16))]]
+          win2 = sg.Window('回复确认', layout2)
+          while True:
+            ev2, vals2 = win2.Read()
+            if ev2 is None or ev2 == '确认':
+              Ticket.update(is_confirmed= True).where(Ticket.tid == row.tid).execute()
+              win2.close()
+              win2_active = False
+              break
 
-              payload = {'img': base64_text, 'ask': ask, 'mac': get_mac(), 'track':track, 'contact': contact, 'cell': cell}
+        else:
+          img = pyautogui.screenshot()
+          img_bytes = io.BytesIO()
+          try:
+            img.save(img_bytes, format='PNG')
+            base64_data = codecs.encode(img_bytes.getvalue(), 'base64')
+            base64_text = codecs.decode(base64_data, 'ascii')
+          except Exception as e:
+            base64_text = ''
+          
+          layout2= [[sg.Text('报修电话...', auto_size_text=False, justification='center', text_color='black', background_color='white', key='-CALL-')],
+                    [sg.Text('问题简述（电话通不通，都麻烦填一下）')],
+                    [sg.In(key='-ASK-')],
+                    [sg.Text('联系人姓名', text_color='white')], 
+                    [sg.In(contact, key='-CONTACT-')],
+                    [sg.Text('联系人手机', text_color='white')], 
+                    [sg.In(cell, key='-CELL-')],
+                    [sg.Checkbox('自动截屏', key='-SCRN-', default=True)],
+                    [sg.Button('提交', bind_return_key=True)]]
+          layout2 = layoutScopes + layout2
+          win2 = sg.Window('报修内容', layout2, font=('Verdana', 16))
+          while True:
+            ev2, vals2 = win2.Read()
+            if ev2 is None:
+              win2.close()
+              win2_active = False
+              break
+            if ev2.startswith('scp_'):
+              idx = int(ev2.split('_')[1])
+              win2['-CALL-'](value='，'.join(scopes[idx]['phones']))
+              scope = scopes[idx]['scope']
+              
+            if ev2 == '提交':
+              ask = vals2['-ASK-'].strip()
+              if scope is '':
+                sg.popup('请选择报修范围')
+                continue
+              if len(ask) == 0:
+                sg.popup('问题不能为空')
+              elif len(ask) > 100:
+                sg.popup('问题不需太长')
+              else:          
+                contact = vals2['-CONTACT-'].strip()
+                cell = vals2['-CELL-'].strip()
+                if  vals2['-SCRN-'] is False:
+                  base64_text = ''
 
-              try:
-                r = requests.post(host+'/api/help', data=payload, timeout=1.5).json()
-                if (r['msg'] == '成功'):
-                  Ticket.create(tid=r['_id'], body=ask, at=r['at'])
-                  
-                  url = "https://cailaixiu.com/v/"+r['nid']+"/"+r['tid']+"/"+r['key']+"/"+ask
-                  qr_img = qrcode.make(url)
-                  out = qr_img.resize((160,160))
-                  qr_img_bytes = io.BytesIO()
-                  out.save(qr_img_bytes, format='PNG')
-                  qr_data = codecs.encode(qr_img_bytes.getvalue(), 'base64')
+                payload = {'img': base64_text, 'scope': scope, 'ask': ask, 'mac': get_mac(), 'contact': contact, 'cell': cell}
 
-                  if  vals2['-TRACK-'] is False:
-                    sg.popup_auto_close('报修成功')
+                try:
+                  r = requests.post(host+'/api/help', data=payload, timeout=1.5).json()
+                  if (r['msg'] == '成功'):
+                    Ticket.create(tid=r['_id'], body=ask, at=r['at'])
+                    
+                    url = "https://cailaixiu.com/v/"+r['nid']+"/"+r['tid']+"/"+r['key']+"/"+str(r['_id'])+"/"+cell+"/"+ask
+                    qr_img = qrcode.make(url)
+                    out = qr_img.resize((160,160))
+                    qr_img_bytes = io.BytesIO()
+                    out.save(qr_img_bytes, format='PNG')
+                    qr_data = codecs.encode(qr_img_bytes.getvalue(), 'base64')
+
+                    if  cell is '':
+                      sg.popup_auto_close('报修成功。填写手机号可能获取报修奖励！')
+                    else:
+                      layout3 = [[sg.Text('手机扫码，获取报修奖励')],
+                        [sg.Image(data=qr_data)],
+                        [sg.Button('关闭',bind_return_key=True,font=('Verdana', 16))]]
+                      sg.Window('报修成功', layout3).read(close=True)
                   else:
-                    layout3 = [[sg.Text('请手机扫码，跟踪报修状态')],
-                      [sg.Image(data=qr_data)],
-                      [sg.Button('关闭',bind_return_key=True,font=('Verdana', 16))]]
-                    sg.Window('报修成功', layout3).read(close=True)
-                else:
-                  sg.popup('报修失败！原因为'+r['msg'])
+                    sg.popup('报修失败！原因为'+r['msg'])
 
-                win2.close()
-                win2_active = False
-              except Exception as e:
-                sg.popup('服务不可用，请稍后再试！')      
+                  win2.close()
+                  win2_active = False
+                except Exception as e:
+                  sg.popup('服务不可用，请稍后再试！') 
+        
+      except Exception as e:
+        sg.popup('服务不可用，请稍后再试！')
+
+         
   window.close()
 
 if __name__ == '__main__':
